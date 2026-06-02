@@ -8,6 +8,6 @@ export const ApiError = (
     success: false,
     statusCode,
     message,
-    errors,
+    error,
   };
 };

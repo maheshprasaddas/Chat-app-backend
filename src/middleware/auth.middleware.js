@@ -1,4 +1,5 @@
-import { verify } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
+const { verify } = jwt;
 
 const authMiddleware = (req, res, next) => {
   try {

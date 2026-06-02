@@ -1,0 +1,455 @@
+openapi: 3.0.3
+
+info:
+  title: WhatsApp Clone API
+  description: RESTful API for the WhatsApp Clone messaging application
+  version: 1.0.0
+  contact:
+    name: Mahesh Das
+
+servers:
+  - url: http://localhost:{port}
+    description: Local development server
+    variables:
+      port:
+        default: "3000"
+
+tags:
+  - name: Auth
+    description: Registration, OTP verification & login
+  - name: Profile
+    description: User profile management
+
+paths:
+  # ─── AUTH ─────────────────────────────────────────────────
+  /user/v1/register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user
+      description: Creates a new user account and sends an OTP to the mobile number
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - mobile_number
+                - country_code
+                - deviceId
+                - terms_and_condition_status
+              properties:
+                mobile_number:
+                  type: number
+                  example: 9876543210
+                country_code:
+                  type: number
+                  example: 91
+                deviceId:
+                  type: string
+                  example: "device_abc123"
+                terms_and_condition_status:
+                  type: string
+                  enum: [accept, decline]
+                  example: accept
+                name:
+                  type: string
+                  example: Mahesh Das
+                email:
+                  type: string
+                  example: mahesh@example.com
+                profile_photo:
+                  type: string
+                  format: binary
+                  description: Profile image file (max 5 MB)
+                opt_marketing_mail:
+                  type: boolean
+                  example: true
+      responses:
+        "201":
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/v1/verify-otp:
+    post:
+      tags:
+        - Auth
+      summary: Verify OTP
+      description: Verifies the OTP sent to the user's mobile number and returns access & refresh tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mobile_number
+                - otp
+              properties:
+                mobile_number:
+                  type: number
+                  example: 9876543210
+                otp:
+                  type: string
+                  example: "123456"
+      responses:
+        "200":
+          description: OTP verified, tokens returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: Invalid or expired OTP
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/v1/login:
+    post:
+      tags:
+        - Auth
+      summary: Login
+      description: Authenticates a verified user by mobile number and device ID, returns new tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mobile_number
+                - deviceId
+              properties:
+                mobile_number:
+                  type: number
+                  example: 9876543210
+                deviceId:
+                  type: string
+                  example: "device_abc123"
+      responses:
+        "200":
+          description: Login successful, tokens returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "403":
+          description: Account not verified or deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/v1/logout:
+    post:
+      tags:
+        - Auth
+      summary: Logout user
+      description: Invalidates the user session by clearing access and refresh tokens from the database
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── PROFILE ──────────────────────────────────────────────
+  /user/v1/get-profile:
+    get:
+      tags:
+        - Profile
+      summary: Get user profile
+      description: Returns the authenticated user's profile information
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User profile data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized — missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/v1/edite-profile:
+    put:
+      tags:
+        - Profile
+      summary: Edit user profile
+      description: Update profile fields and/or upload a new profile photo via Cloudinary
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Mahesh Das
+                email:
+                  type: string
+                  example: mahesh@example.com
+                isAddToGroups:
+                  type: boolean
+                  example: true
+                opt_marketing_mail:
+                  type: boolean
+                  example: false
+                opt_two_factor_auth:
+                  type: boolean
+                  example: true
+                profile_photo:
+                  type: string
+                  format: binary
+                  description: Profile image file (max 5 MB)
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/v1/delete-profile:
+    delete:
+      tags:
+        - Profile
+      summary: Delete profile permanently
+      description: Hard deletes the user account and removes the profile photo from Cloudinary
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Profile deleted permanently
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/v1/temporary-delete-profile:
+    patch:
+      tags:
+        - Profile
+      summary: Deactivate profile (soft delete)
+      description: Sets account_status to "deactivated" without removing data
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Account deactivated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Account already deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/v1/reactivate-profile:
+    patch:
+      tags:
+        - Profile
+      summary: Reactivate profile
+      description: Sets account_status back to "activated" for a previously deactivated account
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Account reactivated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Account is already active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token obtained from verify-otp or login
+
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Operation successful
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Something went wrong
+
+    TokenResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+              example: OTP verified successfully
+            access_token:
+              type: string
+              example: eyJhbGciOiJIUzI1NiIs...
+            refresh_token:
+              type: string
+              example: eyJhbGciOiJIUzI1NiIs...
+
+    UserProfile:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 665d3f8a1a2b3c4d5e6f7890
+        mobile_number:
+          type: number
+          example: 9876543210
+        country_code:
+          type: number
+          example: 91
+        name:
+          type: string
+          example: Mahesh Das
+        email:
+          type: string
+          example: mahesh@example.com
+        profile_photo:
+          type: string
+          example: https://res.cloudinary.com/xxx/image/upload/v1/whatsapp-clone/profiles/abc.jpg
+        isAddToGroups:
+          type: boolean
+          example: true
+        deviceId:
+          type: string
+          example: device_abc123
+        account_status:
+          type: string
+          enum: [activated, deactivated]
+          example: activated
+        terms_and_condition_status:
+          type: string
+          enum: [accept, decline]
+          example: accept
+        opt_marketing_mail:
+          type: boolean
+          example: true
+        opt_two_factor_auth:
+          type: boolean
+          example: false
+        is_verified:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
