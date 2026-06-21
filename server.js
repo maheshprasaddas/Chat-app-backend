@@ -7,10 +7,6 @@ import redisClient from './src/config/redis.js'
 connectDB();
 connectRedis();
 
-redisClient.set("foo", "bar");
-const result = await redisClient.get("foo");
-console.log(result)
-
 const PORT = process.env.PORT;
 server.listen(PORT, () => {
     console.log(`Port ${PORT} running`);

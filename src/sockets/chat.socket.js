@@ -1,152 +1,78 @@
 import {
-    saveUserSocket,
-    getUser,
-    setOffline,
+  saveUserSocket,
+  getUser,
+  setOffline,
 } from "../services/redisUser.service.js";
 
 export default function registerChatSocket(io, socket) {
-
-    /*
+  /*
         USER JOIN
     */
-    socket.on(
-        "join",
-        async ({ userId }) => {
+  socket.on("join", async ({ userId }) => {
+    try {
+      socket.userId = userId;
 
-            try {
+      await saveUserSocket(userId, socket.id);
 
-                socket.userId = userId;
+      console.log(`${userId} connected (${socket.id})`);
+    } catch (error) {
+      console.error("Join Error:", error);
+    }
+  });
 
-                await saveUserSocket(
-                    userId,
-                    socket.id
-                );
-
-                console.log(
-                    `${userId} connected (${socket.id})`
-                );
-
-            } catch (error) {
-                console.error(
-                    "Join Error:",
-                    error
-                );
-            }
-        }
-    );
-
-    /*
+  /*
         SEND MESSAGE
     */
-    socket.on(
-        "send-message",
-        async (payload) => {
+  socket.on("send-message", async (payload) => {
+    try {
+      const { senderId, receiverId, message } = payload;
 
-            try {
+      const receiver = await getUser(receiverId);
 
-                const {
-                    senderId,
-                    receiverId,
-                    message,
-                } = payload;
+      if (!receiver || !receiver.socketId) {
+        console.log(`Receiver ${receiverId} is offline`);
 
-                const receiver =
-                    await getUser(receiverId);
+        return;
+      }
 
-                if (
-                    !receiver ||
-                    !receiver.socketId
-                ) {
+      io.to(receiver.socketId).emit("receive-message", {
+        senderId,
+        receiverId,
+        message,
+        sentAt: Date.now(),
+      });
+    } catch (error) {
+      console.error("Send Message Error:", error);
+    }
+  });
 
-                    console.log(
-                        `Receiver ${receiverId} is offline`
-                    );
-
-                    return;
-                }
-
-                io.to(
-                    receiver.socketId
-                ).emit(
-                    "receive-message",
-                    {
-                        senderId,
-                        receiverId,
-                        message,
-                        sentAt: Date.now(),
-                    }
-                );
-
-            } catch (error) {
-
-                console.error(
-                    "Send Message Error:",
-                    error
-                );
-            }
-        }
-    );
-
-    /*
+  /*
         TYPING INDICATOR
     */
-    socket.on(
-        "typing",
-        async ({
-            senderId,
-            receiverId,
-        }) => {
+  socket.on("typing", async ({ senderId, receiverId }) => {
+    const receiver = await getUser(receiverId);
 
-            const receiver =
-                await getUser(receiverId);
+    if (receiver && receiver.socketId) {
+      io.to(receiver.socketId).emit("user-typing", {
+        senderId,
+      });
+    }
+  });
 
-            if (
-                receiver &&
-                receiver.socketId
-            ) {
-
-                io.to(
-                    receiver.socketId
-                ).emit(
-                    "user-typing",
-                    {
-                        senderId,
-                    }
-                );
-            }
-        }
-    );
-
-    /*
+  /*
         DISCONNECT
     */
-    socket.on(
-        "disconnect",
-        async () => {
+  socket.on("disconnect", async () => {
+    try {
+      if (!socket.userId) {
+        return;
+      }
 
-            try {
+      await setOffline(socket.userId);
 
-                if (
-                    !socket.userId
-                ) {
-                    return;
-                }
-
-                await setOffline(
-                    socket.userId
-                );
-
-                console.log(
-                    `${socket.userId} disconnected`
-                );
-
-            } catch (error) {
-
-                console.error(
-                    "Disconnect Error:",
-                    error
-                );
-            }
-        }
-    );
+      console.log(`${socket.userId} disconnected`);
+    } catch (error) {
+      console.error("Disconnect Error:", error);
+    }
+  });
 }

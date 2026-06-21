@@ -10,7 +10,7 @@ import { errorHandler } from './middleware/error.middleware.js';
 import userRoutes from './routes/user.routes.js';
 import http from 'http';
 import { Server } from 'socket.io';
-import initializeSocket from './sockets/index.js';
+import initializeSocket from './sockets/socketsRoutes.js';
 
 // Resolve __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
