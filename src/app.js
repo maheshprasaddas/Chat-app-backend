@@ -8,6 +8,9 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import { errorHandler } from './middleware/error.middleware.js';
 import userRoutes from './routes/user.routes.js';
+import http from 'http';
+import { Server } from 'socket.io';
+import initializeSocket from './sockets/index.js';
 
 // Resolve __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -17,6 +20,16 @@ const __dirname = path.dirname(__filename);
 const swaggerDocument = YAML.load(path.join(__dirname, 'docs', 'swagger.yaml'));
 
 const app = express();
+//Express is attached to the HTTP server.
+const server = http.createServer(app);
+//create the Socket.IO server
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+  },
+});
+//passes the io instance to another file where all socket events are registered.
+initializeSocket(io);
 
 app.use(express.json());
 app.use(cookieParser());
@@ -35,4 +48,4 @@ app.use('/', userRoutes);
 // Global Error Middleware
 app.use(errorHandler);
 
-export { app };
+export { app, server };

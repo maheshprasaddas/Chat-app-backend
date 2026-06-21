@@ -3,6 +3,9 @@ const { verify } = jwt;
 
 const authMiddleware = (req, res, next) => {
   try {
+    if (req.originalUrl.startsWith("/socket.io")) {
+    return next();
+}
     // Get Authorization header
     const authHeader = req.headers.authorization;
 
