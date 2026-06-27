@@ -1,5 +1,7 @@
+import logger from "../config/logger.js";
+
 export const errorHandler = (err, req, res, next) => {
-    console.error("\n Error => ",err);
+    logger.error({ err, method: req.method, url: req.originalUrl }, "Unhandled error");
 
     const statusCode = err.statusCode || 500;
 

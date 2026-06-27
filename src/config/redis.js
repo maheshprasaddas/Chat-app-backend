@@ -1,4 +1,5 @@
 import { createClient } from "redis";
+import logger from "./logger.js";
 
 const redisClient = createClient({
     username: process.env.REDIS_USERNAME,
@@ -10,11 +11,11 @@ const redisClient = createClient({
 });
 
 redisClient.on("error", (err) => {
-    console.error("Redis Error:", err);
+    logger.error({ err }, "Redis error");
 });
 
 redisClient.on("connect", () => {
-    console.log("Redis Connected");
+    logger.info("Redis connected");
 });
 
 export const connectRedis = async () => {
@@ -22,4 +23,3 @@ export const connectRedis = async () => {
 };
 
 export default redisClient;
-

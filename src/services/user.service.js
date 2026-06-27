@@ -2,6 +2,7 @@ import { hash, compare } from 'bcryptjs';
 import { User } from '../models/user.model.js';
 import tokenUtils from '../utils/generateToken.js';
 import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.js';
+import logger from '../config/logger.js';
 
 const OTP_EXPIRY_MINUTES = 5;
 
@@ -13,7 +14,7 @@ const generateOtp = () => {
   // In production, generate a random OTP and send via SMS
   // For development, return a fixed OTP
   const otp = '123456';
-  console.log(`[DEV] Generated OTP: ${otp}`);
+  logger.debug({ otp }, "Generated OTP");
   return otp;
 };
 

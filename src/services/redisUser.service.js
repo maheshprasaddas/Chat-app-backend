@@ -15,8 +15,5 @@ export const getUser = async (userId) => {
 };
 
 export const setOffline = async (userId) => {
-  await redisClient.hSet(`chat:user:${userId}`, {
-    status: "offline",
-    lastSeen: Date.now(),
-  });
+  await redisClient.del(`chat:user:${userId}`);
 };
