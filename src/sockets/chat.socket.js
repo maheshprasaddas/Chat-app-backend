@@ -1,5 +1,5 @@
 import { getUser } from "../services/redisUser.service.js";
-import { sendMessage, updateMessage, deleteMessage, getMessages } from "../services/message.service.js";
+import { sendMessage, updateMessage, deleteMessage, getMessages, markAsDelivered } from "../services/message.service.js";
 import { createDirectChat, getChatById } from "../services/chat.service.js";
 import logger from "../config/logger.js";
 
@@ -45,7 +45,8 @@ export default function registerChatSocket(io, socket) {
       // Fetch the chat to get all participants
       const chat = await getChatById(resolvedChatId);
 
-      // Emit to all online participants (including sender for multi-device sync)
+      // Emit to all online participants and track delivery
+      const deliveredToIds = [];
       for (const participant of chat.participants) {
         const participantId = participant._id.toString();
         const participantRedis = await getUser(participantId);
@@ -55,7 +56,17 @@ export default function registerChatSocket(io, socket) {
             message,
             chatId: resolvedChatId,
           });
+
+          // Track delivery (skip the sender — they authored the message)
+          if (participantId !== senderId) {
+            deliveredToIds.push(participantId);
+          }
         }
+      }
+
+      // Mark the message as delivered for all online recipients
+      for (const recipientId of deliveredToIds) {
+        await markAsDelivered([message._id], recipientId);
       }
     } catch (error) {
       logger.error({ err: error }, "Send message failed");

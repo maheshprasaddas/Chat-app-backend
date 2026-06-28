@@ -175,3 +175,40 @@ export const sendMessage = async ({
   logger.debug({ messageId: message._id, chatId, senderId }, "Message sent");
   return message;
 };
+
+// ─── GET UNDELIVERED MESSAGES ────────────────────────────────
+// Fetches all messages in the user's chats that haven't been
+// delivered to them yet (used for offline → online sync)
+export const getUndeliveredMessages = async (userId, chatIds) => {
+  if (!chatIds || chatIds.length === 0) return [];
+
+  const messages = await Message.find({
+    chatId: { $in: chatIds },
+    senderId: { $ne: userId },          // don't re-deliver own messages
+    deliveredTo: { $ne: userId },       // not yet delivered to this user
+    isDeleted: false,
+  })
+    .sort({ createdAt: 1 })
+    .populate("senderId", "name profile_photo")
+    .populate("replyTo", "content senderId");
+
+  return messages;
+};
+
+// ─── MARK AS DELIVERED ──────────────────────────────────────
+// Adds userId to the deliveredTo array for the given messages
+export const markAsDelivered = async (messageIds, userId) => {
+  if (!messageIds || messageIds.length === 0) return;
+
+  await Message.updateMany(
+    {
+      _id: { $in: messageIds },
+      deliveredTo: { $ne: userId },
+    },
+    {
+      $addToSet: { deliveredTo: userId },
+    }
+  );
+
+  logger.debug({ userId, count: messageIds.length }, "Messages marked as delivered");
+};

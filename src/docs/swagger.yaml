@@ -32,6 +32,7 @@ info:
     | Event | Payload | Description |
     |-------|---------|-------------|
     | `receive-message` | `{ message, chatId }` | New message received in a chat |
+    | `undelivered-messages` | `{ chatId, messages, count }` | Missed messages delivered on reconnect (grouped by chat) |
     | `message-edited` | `{ messageId, chatId, newContent, editedAt }` | A message was edited |
     | `message-deleted` | `{ messageId, chatId, deletedAt }` | A message was soft-deleted |
     | `user-typing` | `{ senderId, chatId? }` | A user is typing in a chat |
