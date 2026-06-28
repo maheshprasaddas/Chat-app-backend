@@ -1,0 +1,607 @@
+{
+  "info": {
+    "_postman_id": "whatsapp-clone-api",
+    "name": "WhatsApp Clone API",
+    "description": "Complete API collection for the WhatsApp Clone application.\n\n## Setup\n1. Register → Verify OTP → Copy `access_token`\n2. Set `{{access_token}}` variable or paste it in the Bearer Token\n3. For Socket.IO: Use the **Socket.IO Requests** section in Postman\n\n## Variables\n- `base_url`: http://localhost:3000\n- `access_token`: JWT token from login/verify-otp\n- `chatId`: MongoDB ObjectId of a chat\n- `messageId`: MongoDB ObjectId of a message\n- `userId`: MongoDB ObjectId of a target user",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "chatId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "messageId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Registration, OTP verification & login",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "mobile_number",
+                  "value": "9876543210",
+                  "type": "text"
+                },
+                {
+                  "key": "country_code",
+                  "value": "91",
+                  "type": "text"
+                },
+                {
+                  "key": "deviceId",
+                  "value": "device_abc123",
+                  "type": "text"
+                },
+                {
+                  "key": "terms_and_condition_status",
+                  "value": "accept",
+                  "type": "text"
+                },
+                {
+                  "key": "name",
+                  "value": "Mahesh Das",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "mahesh@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "opt_marketing_mail",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "profile_photo",
+                  "type": "file",
+                  "src": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/user/v1/register",
+              "host": ["{{base_url}}"],
+              "path": ["user", "v1", "register"]
+            },
+            "description": "Creates a new user account and sends an OTP to the mobile number.\n\n**No auth required.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data.access_token) {",
+                  "    pm.collectionVariables.set('access_token', res.data.access_token);",
+                  "    console.log('✅ access_token saved to collection variables');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile_number\": 9876543210,\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/v1/verify-otp",
+              "host": ["{{base_url}}"],
+              "path": ["user", "v1", "verify-otp"]
+            },
+            "description": "Verifies the OTP and returns access & refresh tokens.\n\n**Auto-saves `access_token` to collection variables on success.**\n\n**No auth required.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data.access_token) {",
+                  "    pm.collectionVariables.set('access_token', res.data.access_token);",
+                  "    console.log('✅ access_token saved to collection variables');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobile_number\": 9876543210,\n  \"deviceId\": \"device_abc123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/v1/login",
+              "host": ["{{base_url}}"],
+              "path": ["user", "v1", "login"]
+            },
+            "description": "Authenticates a verified user and returns new tokens.\n\n**Auto-saves `access_token` to collection variables on success.**\n\n**No auth required.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/user/v1/logout",
+              "host": ["{{base_url}}"],
+              "path": ["user", "v1", "logout"]
+            },
+            "description": "Invalidates the session by clearing tokens.\n\n**Requires Bearer token.**"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "description": "User profile management (all require Bearer token)",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/user/v1/get-profile",
+              "host": ["{{base_url}}"],
+              "path": ["user", "v1", "get-profile"]
+            },
+            "description": "Returns the authenticated user's profile."
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Profile",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Mahesh Das Updated",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "mahesh.updated@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "isAddToGroups",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "opt_marketing_mail",
+                  "value": "false",
+                  "type": "text"
+                },
+                {
+                  "key": "opt_two_factor_auth",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "profile_photo",
+                  "type": "file",
+                  "src": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/user/v1/edite-profile",
+              "host": ["{{base_url}}"],
+              "path": ["user", "v1", "edite-profile"]
+            },
+            "description": "Update profile fields and/or upload a new profile photo."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Profile (Permanent)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/user/v1/delete-profile",
+              "host": ["{{base_url}}"],
+              "path": ["user", "v1", "delete-profile"]
+            },
+            "description": "Hard deletes the user account and removes the profile photo from Cloudinary."
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate Profile (Soft Delete)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/user/v1/temporary-delete-profile",
+              "host": ["{{base_url}}"],
+              "path": ["user", "v1", "temporary-delete-profile"]
+            },
+            "description": "Sets account_status to 'deactivated' without removing data."
+          },
+          "response": []
+        },
+        {
+          "name": "Reactivate Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/user/v1/reactivate-profile",
+              "host": ["{{base_url}}"],
+              "path": ["user", "v1", "reactivate-profile"]
+            },
+            "description": "Sets account_status back to 'activated'."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Group",
+      "description": "Group chat CRUD operations (all require Bearer token).\n\nSocket notifications are sent automatically:\n- `group-created` → all members\n- `group-updated` → all participants\n- `group-deleted` → all participants",
+      "item": [
+        {
+          "name": "Create Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data.chat._id) {",
+                  "    pm.collectionVariables.set('chatId', res.data.chat._id);",
+                  "    console.log('✅ chatId saved:', res.data.chat._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Project Team\",\n  \"description\": \"Team discussion group\",\n  \"profileImage\": null,\n  \"members\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/v1/group",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "v1", "group"]
+            },
+            "description": "Creates a new group chat. The authenticated user becomes the creator and admin.\n\n**Socket notification:** `group-created` sent to all members.\n\n**Auto-saves `chatId` on success.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Group",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Team Name\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/v1/group/{{chatId}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "v1", "group", "{{chatId}}"]
+            },
+            "description": "Update group name, description, or profile image. Only admins.\n\n**Socket notification:** `group-updated` sent to all participants."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Group",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/chat/v1/group/{{chatId}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "v1", "group", "{{chatId}}"]
+            },
+            "description": "Deactivates the group and removes the chat. Only the group creator.\n\n**Socket notification:** `group-deleted` sent to all participants."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Members",
+      "description": "Group member management (all require Bearer token).\n\nSocket notifications are sent automatically:\n- `member-added` → all participants (including new member)\n- `member-removed` → all previous participants (including removed member)",
+      "item": [
+        {
+          "name": "Add Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/v1/group/{{chatId}}/members",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "v1", "group", "{{chatId}}", "members"]
+            },
+            "description": "Adds a user to the group chat. Only admins.\n\n**Socket notification:** `member-added` sent to all participants."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Member",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat/v1/group/{{chatId}}/members",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "v1", "group", "{{chatId}}", "members"]
+            },
+            "description": "Removes a user from the group. Admins can remove anyone; non-admins can only remove themselves (leave).\n\n**Socket notification:** `member-removed` sent to all previous participants."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Chats",
+      "description": "Chat list and detail (all require Bearer token)",
+      "item": [
+        {
+          "name": "Get All Chats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/chat/v1/chats",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "v1", "chats"]
+            },
+            "description": "Returns all chats (direct & group) for the authenticated user.\n\nResponse includes:\n- **Direct chats:** populated participant name, profile_photo, mobile_number\n- **Group chats:** populated group name, profileImage, description, admins"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Chat By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/chat/v1/chats/{{chatId}}",
+              "host": ["{{base_url}}"],
+              "path": ["chat", "v1", "chats", "{{chatId}}"]
+            },
+            "description": "Returns a single chat with fully populated participants and group info."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Socket.IO Events",
+      "description": "## ⚡ Socket.IO Real-Time Events\n\nPostman supports Socket.IO natively! To test these events:\n\n### How to Connect\n1. In Postman, click **New → Socket.IO Request**\n2. Set URL to: `http://localhost:3000`\n3. Under **Settings**, set the **Handshake Path** to `/socket.io`\n4. Under **Auth** (Headers tab), add:\n   - **Key:** `auth` → `{ \"token\": \"<your_access_token>\" }`\n   - Or add header: `Authorization: Bearer <token>`\n5. Click **Connect**\n\n---\n\n### Client → Server Events\n\nAfter connecting, use the **Message** tab to emit these events:\n\n| Event Name | Payload |\n|---|---|\n| `send-message` | See 'Send Message' request below |\n| `edit-message` | See 'Edit Message' request below |\n| `delete-message` | See 'Delete Message' request below |\n| `get-messages` | See 'Get Messages' request below |\n| `typing` | See 'Typing' request below |\n\n### Server → Client Events (Listen for these)\n\n| Event | Triggered By |\n|---|---|\n| `receive-message` | Someone sent a message in your chat |\n| `message-edited` | A message was edited |\n| `message-deleted` | A message was soft-deleted |\n| `user-typing` | Someone is typing |\n| `group-created` | You were added to a new group (REST API) |\n| `group-updated` | Group details changed (REST API) |\n| `group-deleted` | A group was deleted (REST API) |\n| `member-added` | New member added to group (REST API) |\n| `member-removed` | Member removed from group (REST API) |",
+      "item": [
+        {
+          "name": "📡 Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"_comment\": \"SOCKET.IO EVENT — Use Postman's Socket.IO tab to emit this\",\n  \"event\": \"send-message\",\n  \"payload\": {\n    \"chatId\": \"{{chatId}}\",\n    \"content\": \"Hello from Postman!\",\n    \"messageType\": \"text\",\n    \"attachmentUrl\": null,\n    \"replyTo\": null\n  },\n  \"payload_for_new_direct_chat\": {\n    \"receiverId\": \"{{userId}}\",\n    \"content\": \"Hey! First message\",\n    \"messageType\": \"text\"\n  },\n  \"note\": \"senderId is auto-extracted from JWT. Use either chatId (existing chat) OR receiverId (new direct chat).\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}",
+              "host": ["{{base_url}}"]
+            },
+            "description": "## Socket.IO Event: `send-message`\n\n**This is NOT a REST endpoint.** Use Postman's Socket.IO request to emit this event.\n\n### Payload (existing chat)\n```json\n{\n  \"chatId\": \"<chatId>\",\n  \"content\": \"Hello!\",\n  \"messageType\": \"text\",\n  \"attachmentUrl\": null,\n  \"replyTo\": null\n}\n```\n\n### Payload (new direct chat — auto-creates)\n```json\n{\n  \"receiverId\": \"<userId>\",\n  \"content\": \"Hey!\",\n  \"messageType\": \"text\"\n}\n```\n\n### Server Response\nEmits `receive-message` to all participants:\n```json\n{\n  \"message\": { ... },\n  \"chatId\": \"<chatId>\"\n}\n```\n\n### Notes\n- `senderId` is extracted from JWT — never send it\n- `messageType`: text, image, video, audio, file, location, system\n- For replies, set `replyTo` to the original message's `_id`"
+          },
+          "response": []
+        },
+        {
+          "name": "📡 Edit Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"_comment\": \"SOCKET.IO EVENT — Use Postman's Socket.IO tab to emit this\",\n  \"event\": \"edit-message\",\n  \"payload\": {\n    \"messageId\": \"{{messageId}}\",\n    \"chatId\": \"{{chatId}}\",\n    \"newContent\": \"Edited message content\"\n  },\n  \"note\": \"Only the original sender can edit. Validated via JWT.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}",
+              "host": ["{{base_url}}"]
+            },
+            "description": "## Socket.IO Event: `edit-message`\n\n### Payload\n```json\n{\n  \"messageId\": \"<messageId>\",\n  \"chatId\": \"<chatId>\",\n  \"newContent\": \"Updated text\"\n}\n```\n\n### Server Response\nEmits `message-edited` to all participants:\n```json\n{\n  \"messageId\": \"<messageId>\",\n  \"chatId\": \"<chatId>\",\n  \"newContent\": \"Updated text\",\n  \"editedAt\": \"2026-06-28T...\"\n}\n```\n\n### Notes\n- Only the sender can edit their own messages\n- Sets `isEdited: true` and `editedAt` on the message"
+          },
+          "response": []
+        },
+        {
+          "name": "📡 Delete Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"_comment\": \"SOCKET.IO EVENT — Use Postman's Socket.IO tab to emit this\",\n  \"event\": \"delete-message\",\n  \"payload\": {\n    \"messageId\": \"{{messageId}}\",\n    \"chatId\": \"{{chatId}}\"\n  },\n  \"note\": \"Soft delete — sets isDeleted=true and clears content. Only sender can delete.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}",
+              "host": ["{{base_url}}"]
+            },
+            "description": "## Socket.IO Event: `delete-message`\n\n### Payload\n```json\n{\n  \"messageId\": \"<messageId>\",\n  \"chatId\": \"<chatId>\"\n}\n```\n\n### Server Response\nEmits `message-deleted` to all participants:\n```json\n{\n  \"messageId\": \"<messageId>\",\n  \"chatId\": \"<chatId>\",\n  \"deletedAt\": \"2026-06-28T...\"\n}\n```\n\n### Notes\n- Soft delete — message stays in DB with `isDeleted: true`\n- Content is cleared to empty string"
+          },
+          "response": []
+        },
+        {
+          "name": "📡 Get Messages (Paginated)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"_comment\": \"SOCKET.IO EVENT with ACK CALLBACK — Use Postman's Socket.IO tab\",\n  \"event\": \"get-messages\",\n  \"payload\": {\n    \"chatId\": \"{{chatId}}\",\n    \"page\": 1,\n    \"limit\": 50\n  },\n  \"note\": \"Returns data via acknowledgement callback, not emit.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}",
+              "host": ["{{base_url}}"]
+            },
+            "description": "## Socket.IO Event: `get-messages`\n\n### Payload\n```json\n{\n  \"chatId\": \"<chatId>\",\n  \"page\": 1,\n  \"limit\": 50\n}\n```\n\n### Ack Callback Response\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"messages\": [...],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 50,\n      \"total\": 120,\n      \"pages\": 3\n    }\n  }\n}\n```\n\n### Notes\n- Uses Socket.IO acknowledgement (callback), not a separate emit\n- Messages are sorted newest-first\n- Sender info and reply-to are populated"
+          },
+          "response": []
+        },
+        {
+          "name": "📡 Typing Indicator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"_comment\": \"SOCKET.IO EVENT — Use Postman's Socket.IO tab to emit this\",\n  \"event\": \"typing\",\n  \"payload_for_direct\": {\n    \"receiverId\": \"{{userId}}\"\n  },\n  \"payload_for_group\": {\n    \"chatId\": \"{{chatId}}\"\n  },\n  \"note\": \"Use receiverId for direct chats, chatId for group chats.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}",
+              "host": ["{{base_url}}"]
+            },
+            "description": "## Socket.IO Event: `typing`\n\n### Payload (Direct chat)\n```json\n{\n  \"receiverId\": \"<userId>\"\n}\n```\n\n### Payload (Group chat)\n```json\n{\n  \"chatId\": \"<chatId>\"\n}\n```\n\n### Server Response\nEmits `user-typing` to the receiver(s):\n```json\n{\n  \"senderId\": \"<userId>\",\n  \"chatId\": \"<chatId>\"\n}\n```\n\n### Notes\n- For direct chats: only the receiver gets the event\n- For group chats: all participants except the sender get the event"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

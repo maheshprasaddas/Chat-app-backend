@@ -8,9 +8,11 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import { errorHandler } from './middleware/error.middleware.js';
 import userRoutes from './routes/user.routes.js';
+import chatRoutes from './routes/chat.routes.js';
 import http from 'http';
 import { Server } from 'socket.io';
 import initializeSocket from './sockets/socketsRoutes.js';
+import { setIO } from './sockets/socket.js';
 
 // Resolve __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -28,6 +30,8 @@ const io = new Server(server, {
     origin: "*",
   },
 });
+// Make io accessible to controllers for real-time notifications
+setIO(io);
 //passes the io instance to another file where all socket events are registered.
 initializeSocket(io);
 
@@ -44,6 +48,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Routes
 app.use('/', userRoutes);
+app.use('/', chatRoutes);
 
 // Global Error Middleware
 app.use(errorHandler);

@@ -2,7 +2,45 @@ openapi: 3.0.3
 
 info:
   title: WhatsApp Clone API
-  description: RESTful API for the WhatsApp Clone messaging application
+  description: |
+    RESTful API for the WhatsApp Clone messaging application.
+
+    ## Authentication
+    All protected endpoints require a Bearer JWT token obtained from verify-otp or login.
+    The authenticated user's identity is **always derived from the JWT** — user IDs are never accepted from the request body for the caller's own identity.
+
+    ## Real-Time Events (Socket.IO)
+    This API uses Socket.IO for real-time messaging. Connect with:
+    ```js
+    const socket = io("http://localhost:3000", {
+      auth: { token: "<accessToken>" }
+    });
+    ```
+
+    ### Client → Server Events
+
+    | Event | Payload | Description |
+    |-------|---------|-------------|
+    | `send-message` | `{ chatId?, receiverId?, content, messageType?, attachmentUrl?, replyTo? }` | Send a message. Provide `chatId` for existing chats or `receiverId` for new direct chats (auto-created). `senderId` is extracted from JWT. |
+    | `edit-message` | `{ messageId, chatId, newContent }` | Edit a message you sent. Ownership validated server-side via JWT. |
+    | `delete-message` | `{ messageId, chatId }` | Soft-delete a message you sent. Ownership validated server-side via JWT. |
+    | `get-messages` | `{ chatId, page?, limit? }` | Fetch paginated message history. Returns data via acknowledgement callback. |
+    | `typing` | `{ receiverId?, chatId? }` | Send typing indicator. Use `chatId` for group chats, `receiverId` for direct. Sender identity from JWT. |
+
+    ### Server → Client Events
+
+    | Event | Payload | Description |
+    |-------|---------|-------------|
+    | `receive-message` | `{ message, chatId }` | New message received in a chat |
+    | `message-edited` | `{ messageId, chatId, newContent, editedAt }` | A message was edited |
+    | `message-deleted` | `{ messageId, chatId, deletedAt }` | A message was soft-deleted |
+    | `user-typing` | `{ senderId, chatId? }` | A user is typing in a chat |
+    | `group-created` | `{ chat, group }` | You were added to a new group (triggered by REST API) |
+    | `group-updated` | `{ chatId, group, updatedBy }` | Group details were updated (triggered by REST API) |
+    | `group-deleted` | `{ chatId, groupId, deletedBy }` | A group was deleted (triggered by REST API) |
+    | `member-added` | `{ chatId, userId, addedBy }` | A new member was added to a group (triggered by REST API) |
+    | `member-removed` | `{ chatId, userId, removedBy }` | A member was removed from a group (triggered by REST API) |
+
   version: 1.0.0
   contact:
     name: Mahesh Das
@@ -19,6 +57,12 @@ tags:
     description: Registration, OTP verification & login
   - name: Profile
     description: User profile management
+  - name: Group
+    description: Group chat creation, update, delete
+  - name: Members
+    description: Add & remove group members
+  - name: Chats
+    description: Chat list & detail
 
 paths:
   # ─── AUTH ─────────────────────────────────────────────────
@@ -352,6 +396,351 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  # ─── GROUP CRUD ──────────────────────────────────────────
+  /chat/v1/group:
+    post:
+      tags:
+        - Group
+      summary: Create a group chat
+      description: |
+        Creates a new group with the authenticated user as creator and admin.
+        The creator is automatically added as a member. All specified members
+        receive a `group-created` socket notification in real time.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "Project Team"
+                description:
+                  type: string
+                  example: "Team discussion group"
+                profileImage:
+                  type: string
+                  example: "https://example.com/group-avatar.jpg"
+                members:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of user IDs to add as members
+                  example: ["665d3f8a1a2b3c4d5e6f7891", "665d3f8a1a2b3c4d5e6f7892"]
+      responses:
+        "201":
+          description: Group created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      chat:
+                        $ref: "#/components/schemas/Chat"
+                      group:
+                        $ref: "#/components/schemas/Group"
+        "400":
+          description: Missing group name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /chat/v1/group/{chatId}:
+    put:
+      tags:
+        - Group
+      summary: Update group details
+      description: |
+        Update group name, description, or profile image.
+        Only group admins can update. All participants receive a `group-updated` socket notification.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/chatIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Updated Team Name"
+                description:
+                  type: string
+                  example: "Updated description"
+                profileImage:
+                  type: string
+                  example: "https://example.com/new-avatar.jpg"
+      responses:
+        "200":
+          description: Group updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      chat:
+                        $ref: "#/components/schemas/Chat"
+                      group:
+                        $ref: "#/components/schemas/Group"
+        "400":
+          description: Not a group chat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Only admins can update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Chat not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags:
+        - Group
+      summary: Delete a group
+      description: |
+        Deactivates the group and removes the chat document.
+        Only the group creator can delete. All participants receive a `group-deleted` socket notification.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/chatIdParam"
+      responses:
+        "200":
+          description: Group deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Not a group chat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Only the creator can delete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Chat not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── MEMBERS ─────────────────────────────────────────────
+  /chat/v1/group/{chatId}/members:
+    post:
+      tags:
+        - Members
+      summary: Add member to group
+      description: |
+        Adds a user to the group chat. Only group admins can add members.
+        All participants (including the new member) receive a `member-added` socket notification.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/chatIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                  description: ID of the user to add
+                  example: "665d3f8a1a2b3c4d5e6f7893"
+      responses:
+        "200":
+          description: Member added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/Chat"
+        "400":
+          description: Missing userId or not a group chat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Only admins can add members
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Chat not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags:
+        - Members
+      summary: Remove member from group
+      description: |
+        Removes a user from the group chat. Admins can remove anyone;
+        non-admins can only remove themselves (leave group).
+        All previous participants (including the removed user) receive a `member-removed` socket notification.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/chatIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                  description: ID of the user to remove
+                  example: "665d3f8a1a2b3c4d5e6f7893"
+      responses:
+        "200":
+          description: Member removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Missing userId or not a group chat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Only admins can remove members
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Chat not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── CHAT LIST & DETAIL ─────────────────────────────────
+  /chat/v1/chats:
+    get:
+      tags:
+        - Chats
+      summary: Get all chats
+      description: Returns all chats (direct & group) for the authenticated user, sorted by recent activity
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of chats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Chat"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /chat/v1/chats/{chatId}:
+    get:
+      tags:
+        - Chats
+      summary: Get chat by ID
+      description: Returns a single chat with populated participants and group info
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/chatIdParam"
+      responses:
+        "200":
+          description: Chat details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/Chat"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Chat not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -359,6 +748,16 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: Access token obtained from verify-otp or login
+
+  parameters:
+    chatIdParam:
+      name: chatId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: MongoDB ObjectId of the chat
+      example: "665d3f8a1a2b3c4d5e6f7890"
 
   schemas:
     SuccessResponse:
@@ -451,5 +850,82 @@ components:
           type: string
           format: date-time
         updated_at:
+          type: string
+          format: date-time
+
+    Chat:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "665d3f8a1a2b3c4d5e6f7890"
+        type:
+          type: string
+          enum: [direct, group]
+          example: group
+        groupId:
+          type: string
+          nullable: true
+          example: "665d3f8a1a2b3c4d5e6f7895"
+        participants:
+          type: array
+          items:
+            type: string
+          example: ["665d3f8a1a2b3c4d5e6f7891", "665d3f8a1a2b3c4d5e6f7892"]
+        lastMessage:
+          type: string
+          example: "Hello everyone!"
+        lastMessageBy:
+          type: string
+          nullable: true
+          example: "665d3f8a1a2b3c4d5e6f7891"
+        lastMessageAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Group:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "665d3f8a1a2b3c4d5e6f7895"
+        name:
+          type: string
+          example: "Project Team"
+        profileImage:
+          type: string
+          nullable: true
+          example: "https://example.com/group-avatar.jpg"
+        description:
+          type: string
+          nullable: true
+          example: "Team discussion group"
+        createdBy:
+          type: string
+          example: "665d3f8a1a2b3c4d5e6f7891"
+        admins:
+          type: array
+          items:
+            type: string
+          example: ["665d3f8a1a2b3c4d5e6f7891"]
+        members:
+          type: array
+          items:
+            type: string
+          example: ["665d3f8a1a2b3c4d5e6f7891", "665d3f8a1a2b3c4d5e6f7892"]
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
           type: string
           format: date-time
