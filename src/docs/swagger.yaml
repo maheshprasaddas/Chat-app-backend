@@ -1,9 +1,9 @@
 openapi: 3.0.3
 
 info:
-  title: WhatsApp Clone API
+  title: KhatiUp API
   description: |
-    RESTful API for the WhatsApp Clone messaging application.
+    RESTful API for the KhatiUp messaging application.
 
     ## Authentication
     All protected endpoints require a Bearer JWT token obtained from verify-otp or login.
@@ -823,7 +823,7 @@ components:
           example: mahesh@example.com
         profile_photo:
           type: string
-          example: https://res.cloudinary.com/xxx/image/upload/v1/whatsapp-clone/profiles/abc.jpg
+          example: https://res.cloudinary.com/xxx/image/upload/v1/khatiup/profiles/abc.jpg
         isAddToGroups:
           type: boolean
           example: true

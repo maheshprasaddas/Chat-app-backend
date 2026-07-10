@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "whatsapp-clone-api",
-    "name": "WhatsApp Clone API",
-    "description": "Complete API collection for the WhatsApp Clone application.\n\n## Setup\n1. Register → Verify OTP → Copy `access_token`\n2. Set `{{access_token}}` variable or paste it in the Bearer Token\n3. For Socket.IO: Use the **Socket.IO Requests** section in Postman\n\n## Variables\n- `base_url`: http://localhost:3000\n- `access_token`: JWT token from login/verify-otp\n- `chatId`: MongoDB ObjectId of a chat\n- `messageId`: MongoDB ObjectId of a message\n- `userId`: MongoDB ObjectId of a target user",
+    "_postman_id": "khatiup-api",
+    "name": "KhatiUp API",
+    "description": "Complete API collection for the KhatiUp application.\n\n## Setup\n1. Register → Verify OTP → Copy `access_token`\n2. Set `{{access_token}}` variable or paste it in the Bearer Token\n3. For Socket.IO: Use the **Socket.IO Requests** section in Postman\n\n## Variables\n- `base_url`: http://localhost:3000\n- `access_token`: JWT token from login/verify-otp\n- `chatId`: MongoDB ObjectId of a chat\n- `messageId`: MongoDB ObjectId of a message\n- `userId`: MongoDB ObjectId of a target user",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [

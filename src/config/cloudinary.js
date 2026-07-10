@@ -19,7 +19,7 @@ const ensureConfigured = () => {
  * @param {string} folder - Cloudinary folder name
  * @returns {Promise<{url: string, public_id: string}>}
  */
-export const uploadToCloudinary = (fileBuffer, folder = 'whatsapp-clone/profiles') => {
+export const uploadToCloudinary = (fileBuffer, folder = 'khatiup/profiles') => {
   ensureConfigured();
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(

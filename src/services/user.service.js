@@ -1,20 +1,20 @@
 import { hash, compare } from 'bcryptjs';
+import { randomInt } from 'crypto';
 import { User } from '../models/user.model.js';
 import tokenUtils from '../utils/generateToken.js';
 import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.js';
 import logger from '../config/logger.js';
+import { sendWelcomeMail } from './mail.service.js';
 
 const OTP_EXPIRY_MINUTES = 5;
 
 /**
- * Generate a 6-digit OTP (mock for development)
- * Replace with Twilio / Firebase / MSG91 in production
+ * Generate a cryptographically secure random 6-digit OTP
+ * @returns {string} A 6-digit OTP string (zero-padded)
  */
 const generateOtp = () => {
-  // In production, generate a random OTP and send via SMS
-  // For development, return a fixed OTP
-  const otp = '123456';
-  logger.debug({ otp }, "Generated OTP");
+  const otp = randomInt(100000, 999999).toString();
+  logger.debug('OTP generated');
   return otp;
 };
 
@@ -58,7 +58,15 @@ export const registerUser = async ({ mobile_number, country_code, deviceId, term
     }
     await existingUser.save();
 
-    return { message: 'OTP sent to your mobile number', mobile_number };
+    // Send OTP via email if user provided an email address (fire-and-forget)
+    const recipientEmail = email || existingUser.email;
+    if (recipientEmail) {
+      sendWelcomeMail(recipientEmail, name || existingUser.name, otp).catch((err) =>
+        logger.error({ err, email: recipientEmail }, 'Welcome email background error')
+      );
+    }
+
+    return { message: 'OTP sent to your email', mobile_number };
   }
 
   // Create new user
@@ -74,6 +82,13 @@ export const registerUser = async ({ mobile_number, country_code, deviceId, term
     otp_expires_at: otpExpiry,
     ...profilePhotoData,
   });
+
+  // Send OTP via email if user provided an email address (fire-and-forget)
+  if (email) {
+    sendWelcomeMail(email, name, otp).catch((err) =>
+      logger.error({ err, email }, 'Welcome email background error')
+    );
+  }
 
   return { message: 'OTP sent to your mobile number', mobile_number };
 };
